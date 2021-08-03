@@ -13,33 +13,48 @@ class RSACrypto(
         initAndGenerateKeyPair()
     }
 
-    private val encryptCipher: Cipher by lazy {
+    private fun encryptCipher(withPrivateKey: Boolean = true) =
         Cipher.getInstance(CIPHER_RSA_ENCRYPT_MODE).apply {
-            init(Cipher.ENCRYPT_MODE, rsaKey.getPrivateKey())
+            init(
+                Cipher.ENCRYPT_MODE,
+                if (withPrivateKey) {
+                    rsaKey.getPrivateKey()
+                } else {
+                    rsaKey.getPublicKey()
+                }
+            )
         }
-    }
 
-    private val decryptCipher: Cipher by lazy {
+    private fun decryptCipher(withPublicKey: Boolean = true) =
         Cipher.getInstance(CIPHER_RSA_ENCRYPT_MODE).apply {
-            init(Cipher.DECRYPT_MODE, rsaKey.getPublicKey())
+            init(
+                Cipher.DECRYPT_MODE,
+                if (withPublicKey) {
+                    rsaKey.getPublicKey()
+                } else {
+                    rsaKey.getPrivateKey()
+                }
+            )
         }
-    }
 
-    fun encrypt(value: String): String {
+    fun encrypt(value: String, withPrivateKey: Boolean = true): String {
         val originalMessage = value.toByteArray()
         return if (originalMessage.size > CIPHER_BLOCK_SIZE) {
-            encryptLargeText(encryptCipher, originalMessage)
+            encryptLargeText(encryptCipher(withPrivateKey), originalMessage)
         } else {
-            Base64.encodeToString(encryptCipher.doFinal(value.toByteArray()), Base64.DEFAULT)
+            Base64.encodeToString(
+                encryptCipher(withPrivateKey).doFinal(value.toByteArray()),
+                Base64.DEFAULT
+            )
         }
     }
 
-    fun decrypt(value: String): String {
+    fun decrypt(value: String, withPublicKey: Boolean = true): String {
         val encrypted = Base64.decode(value, Base64.DEFAULT)
         return if (encrypted.size > CIPHER_BLOCK_SIZE)
-            decryptLargeText(decryptCipher, encrypted)
+            decryptLargeText(decryptCipher(withPublicKey), encrypted)
         else {
-            String(decryptCipher.doFinal(Base64.decode(value, Base64.DEFAULT)))
+            String(decryptCipher(withPublicKey).doFinal(Base64.decode(value, Base64.DEFAULT)))
         }
     }
 
