@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import br.com.amorim.crypto.keys.RSAKey
 import java.io.ByteArrayOutputStream
+import java.security.Signature
 import javax.crypto.Cipher
 
 class RSACrypto(
@@ -12,6 +13,8 @@ class RSACrypto(
     private val rsaKey = RSAKey(context).apply {
         initAndGenerateKeyPair()
     }
+
+    private val base64Wrapper: Base64Wrapper = Base64Wrapper()
 
     private val encryptCipher: Cipher by lazy {
         Cipher.getInstance(CIPHER_RSA_ENCRYPT_MODE).apply {
@@ -41,6 +44,21 @@ class RSACrypto(
         else {
             String(decryptCipher.doFinal(Base64.decode(value, Base64.DEFAULT)))
         }
+    }
+
+    fun sign(value: String): String {
+        val signature = Signature.getInstance(ALGORITHM)
+        signature.initSign(rsaKey.getPrivateKey())
+        signature.update(base64Wrapper.decode(value))
+        return base64Wrapper.encodeToString(signature.sign())
+    }
+
+    fun verify(signValue: String, originalValue: String): Boolean {
+        val signature = Signature.getInstance(ALGORITHM)
+        signature.initVerify(rsaKey.getPublicKey())
+        val data = base64Wrapper.decode(signValue)
+        signature.update(base64Wrapper.decode(originalValue))
+        return signature.verify(data)
     }
 
     private fun encryptLargeText(cipher: Cipher, message: ByteArray): String {
@@ -76,8 +94,9 @@ class RSACrypto(
         return String(byteArrayOutputStream.toByteArray())
     }
 
-    companion object {
-        private const val CIPHER_RSA_ENCRYPT_MODE = "RSA/ECB/PKCS1Padding"
-        private const val CIPHER_BLOCK_SIZE = 256
+    private companion object {
+        const val CIPHER_RSA_ENCRYPT_MODE = "RSA/ECB/PKCS1Padding"
+        const val CIPHER_BLOCK_SIZE = 256
+        const val ALGORITHM = "SHA256withRSA"
     }
 }
