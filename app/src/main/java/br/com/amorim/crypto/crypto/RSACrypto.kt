@@ -56,9 +56,8 @@ class RSACrypto(
     fun verify(signValue: String, originalValue: String): Boolean {
         val signature = Signature.getInstance(ALGORITHM)
         signature.initVerify(rsaKey.getPublicKey())
-        val data = base64Wrapper.decode(signValue)
         signature.update(base64Wrapper.decode(originalValue))
-        return signature.verify(data)
+        return signature.verify(base64Wrapper.decode(signValue))
     }
 
     private fun encryptLargeText(cipher: Cipher, message: ByteArray): String {
